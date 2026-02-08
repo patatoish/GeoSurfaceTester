@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebView Fingerprint Test</title>
+</head>
+<body>
+    <script>
+        // Wait for page to fully load
+        window.addEventListener('load', function() {
+            // Collect all fingerprinting data
+            const data = {
+                jsTimezone: getTimezone(),
+                intlLocale: getIntlLocale(),
+                userAgent: navigator.userAgent,
+                acceptLanguage: navigator.language || navigator.userLanguage,
+                canvasFingerprint: getCanvasFingerprint(),
+                webGlRenderer: getWebGLRenderer(),
+                webGlVendor: getWebGLVendor()
+            };
+            
+            // Send results back to Android
+            if (window.Android && window.Android.sendResults) {
+                window.Android.sendResults(
+                    data.jsTimezone,
+                    data.intlLocale,
+                    data.userAgent,
+                    data.acceptLanguage,
+                    data.canvasFingerprint,
+                    data.webGlRenderer,
+                    data.webGlVendor
+                );
+            }
+        });
+        
+        function getTimezone() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone;
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function getIntlLocale() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().locale;
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function getCanvasFingerprint() {
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Draw text with various styles
+                ctx.textBaseline = 'top';
+                ctx.font = '14px "Arial"';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillStyle = '#f60';
+                ctx.fillRect(125, 1, 62, 20);
+                ctx.fillStyle = '#069';
+                ctx.fillText('GeoSurface Tester 🌍', 2, 15);
+                ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+                ctx.fillText('GeoSurface Tester 🌍', 4, 17);
+                
+                // Get canvas data and hash it
+                const dataUrl = canvas.toDataURL();
+                return simpleHash(dataUrl);
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function getWebGLRenderer() {
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    }
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function getWebGLVendor() {
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        return gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                    }
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        // Simple hash function for canvas fingerprint
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return Math.abs(hash).toString(16).substring(0, 8);
+        }
+    </script>
+</body>
+</html>
